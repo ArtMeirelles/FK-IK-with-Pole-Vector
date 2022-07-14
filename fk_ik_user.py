@@ -13,7 +13,6 @@ out_joint_made = False
 window_maker = []
 updated_index = 0
 main_grp = []
-wheel_ctrl = []
 world_ctrl = []
 
     ### Auto Rig Functions ###
@@ -281,22 +280,6 @@ def rename_search_replace(obj_list, search, replace):
             cmds.rename(pair[0], pair[1])
      
 
-    #Tread Functions
-def make_locator():
-    global first_run
-    make_locator.front_locator = cmds.spaceLocator(n = "CircleLocator_Front")
-    cmds.scale(3,3,3)
-    cmds.move(0,0,10, r = True)
-    make_locator.back_locator = cmds.spaceLocator(n = "CircleLocator_Back")
-    cmds.scale(3,3,3)
-    
-    #Only prompt for locator placement the first time the user runs the program
-    if first_run == True:
-        cmds.confirmDialog(title = "Locator Placement", message = "Place the Locators where you need.")
-        first_run =  False
-    cmds.button(window_maker.init_button, edit = True, enable = False)
-    cmds.button(window_maker.reset_button, edit = True, enable = True)
-    cmds.button(window_maker.curve_button, edit = True, visible = True, enable = True)
 
 def reset_locator():
     #Delete Locators
@@ -321,42 +304,8 @@ def reset_locator():
     except ValueError:
         pass
         
-def make_curve():
-    cmds.select(make_locator.front_locator)
-    front_locator_position = cmds.getAttr(".translateZ")
-    cmds.select(make_locator.back_locator)
-    back_locator_position = cmds.getAttr(".translateZ")
-    print(front_locator_position)
-    print(back_locator_position)
-    locator_distance = abs(front_locator_position-back_locator_position)
-    print("Total Distance is %i" %locator_distance)
-    curve_radius = locator_distance/2
-    make_curve.tread_curve = cmds.circle(n = "TreadCurve", r = curve_radius, nr = (1, 0, 0))
-    make_curve.locator_group = cmds.group(make_locator.front_locator, make_locator.back_locator, n = "Loc_Group")
-    cmds.select(make_curve.tread_curve, r = True)
-    cmds.select("Loc_Group", add = True)
-    cmds.align(z = "mid", atl = True)
-    cmds.select(make_curve.tread_curve)
-    cmds.FreezeTransformations()
-    cmds.textFieldButtonGrp(window_maker.text_button, edit = True, enable = True, visible = True)
-    cmds.button(window_maker.curve_button, edit = True, enable = False, visible = False)
-    cmds.select(clear=True)
-    cmds.confirmDialog(title="Tread",message="Select an object to be the tread")
-    #delete the values of selected_object
-
-    
-    cmds.select("TreadFull")
-    wireObj = cmds.ls(sl = True, o = True)[0]
-    
-    cmds.select(make_curve.tread_curve)
-    wireCurve = cmds.ls(sl = True, o = True)[0]
-    
-    create_wireDeformer(wireObj, wireCurve, 40)
-    return updateCopynum
     
 
-    
-    ### Auto Wheel Functions ###
 def master_group():
     if cmds.objExists('main_grp')!=True: # If doens't not exist create a group called "main_grp"
         cmds.group(n='main_grp', empty=True)
@@ -422,74 +371,6 @@ def MakeJoint():
         master_group()
         master_CTRL()
         
-   
-def getSelectedObjectSkinnedJoints():
-    objects = cmds.ls(sl=True);
-    cmds.select(cl=True)
-    for obj in objects:
-        print("-> searching for joints on: " + obj)
-        skinClusters = cmds.listConnections(obj, type="skinCluster"); # how to get the skinCluster of an object??
-        if (skinClusters is not None):
-            for skin in skinClusters:
-                print(skin)
-                cmds.select(cmds.skinCluster(skin, query=True, inf=True), add=True)
-                
-
-        else:
-            cmds.skinCluster(mi=1)
-            print("-----> no skin on " + obj + "!")
-
-
-  
-def arrow_drop():
-    cmds.curve(
-        n = "WheelCTRL",
-        d = 1, 
-        p = [(-1,0,-2), (-1, 0 ,2), (-2, 0,2), (0,0,4), (2,0,2),
-        (1,0,2), (1,0,-2), (2,0,-2), (0,0,-5), (-2,0,-2),(-1,0,-2)], 
-        k = [0,1,2,3,4,5,6,7,8,9,10]
-    )
-    radial_selection = cmds.radioButtonGrp(radial_selection_button, q = True, sl = True)
-    if radial_selection == 1:
-        print("Direction is X")
-        cmds.rotate(0,90,0)
-    if radial_selection == 2:
-        print("Direction is Y")
-        cmds.rotate(90,0,0)
-    cmds.closeCurve(rpo = True)    
-
-def extra_arrow_drop():
-    cmds.curve(
-        n = "ExtraCTRL1",
-        d = 1, 
-        p = [(-1,0,-2), (-1, 0 ,2), (-2, 0,2), (0,0,4), (2,0,2),
-        (1,0,2), (1,0,-2), (2,0,-2), (0,0,-5), (-2,0,-2),(-1,0,-2)], 
-        k = [0,1,2,3,4,5,6,7,8,9,10]
-    )
-    radial_selection = cmds.radioButtonGrp(radial_selection_button, q = True, sl = True)
-    if radial_selection == 1:
-        print("Direction is X")
-        cmds.rotate(0,90,0)
-    if radial_selection == 2:
-        print("Direction is Y")
-        cmds.rotate(90,0,0)
-    cmds.closeCurve(rpo = True)
-        
-def rename_asset():
-    nameNumber = 1
-    global updated_index
-    curv_sel = cmds.rename("WheelCTRL","WheelCTRL_" + str(nameNumber).zfill(3))
-    #cmds.rename("Wheels_Jnt_GRP",f"wheel_selection.wheel_group{updated_index}")
-    
-    
-def unlock_channels():
-    objs = cmds.ls(selection=True, type='transform')
-    trs = ['t','r','s']
-    xyz = ['x','y','z']
-    for obj in objs:
-        for attr_trs in trs:
-            for axis in xyz:
-                cmds.setAttr(obj + '.'+ attr_trs + axis, edit=True, lock=False)
                 
                 
 def ik_maker():
