@@ -1,3 +1,11 @@
+'''
+Made by Arthur Cury Meirelles
+The goal was to make a IK/FK with pole vector.
+Contact:
+    arthurcurymeirelles@hotmail.com
+    https://www.linkedin.com/in/arthurm3d
+'''
+
 import maya.cmds as cmds
 
 # General Vars
