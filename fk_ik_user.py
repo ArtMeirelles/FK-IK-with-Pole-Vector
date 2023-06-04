@@ -6,25 +6,9 @@ Contact:
     https://www.linkedin.com/in/arthurm3d
 '''
 
-import maya.cmds as cmds
-
-# General Vars
-name_user="JointsName"
-NewJointName = 'JointsN'
-loc_list=[]
-the_joint=[]
-i=[]
-to_rename = []
-first_run = True
-in_joint_made = False
-out_joint_made = False
-window_maker = []
-updated_index = 0
-main_grp = []
-world_ctrl = []
-
-    ### Auto Rig Functions ###
-    
+  
+import maya.cmds as cmds  
+   
     # Make Locators
 def locator_pivot():
     posX = posY = posZ = 0
@@ -59,14 +43,19 @@ def locator_pivot():
 
     # Creates a locator and moves it to the average position of all vertices selected
     cmds.move(position[0], position[1], position[2], cmds.spaceLocator(n='_Jnt1'))
+    loc_list_func()
+
+    # return list of locators 
+def loc_list_func():
+    
     locs = cmds.select('_Jnt*')
     loc_list = cmds.ls(sl=True,type='transform')
-    print (loc_list)
     cmds.select(cl=True)
+    return loc_list
+    
 
-    # Undo Locators
 def delete_locators():
-    global loc_list
+    loc_list =  loc_list_func()
     cmds.select(loc_list)
     loc_list=[]
     cmds.select(cl=True)
@@ -77,7 +66,7 @@ def delete_locators():
         loc_lis = cmds.ls(sl=True, type='transform')
         loc_d = cmds.select('_Jnt*')
         cmds.delete()
-          
+              
     # Functions to create joints where the locators are placed
 def make_joints():
         if cmds.objExists('_Jnt*')!=True:
@@ -88,7 +77,7 @@ def make_joints():
             print (loc_list)
             cmds.select(cl=True)
             for i in loc_list:
-                the_joint = cmds.joint(n=name_user + '%s' %i + '_skin', rotationOrder = "xyz")
+                the_joint = cmds.joint(n=cmds.textFieldGrp(joint_name, q=1, tx=1) + '%s' %i + '_skin', rotationOrder = "xyz")
                 print (the_joint)
                 sel = cmds.ls(sl=True, type='joint')
                 cmds.select(sel)
@@ -128,9 +117,7 @@ def ik_maker():
         cmds.warning('Please, first select the root joint!')
     else:
         IKSelec = actObject
-        print (IKSelec)
         last_jnt = ik_selc
-        print (last_jnt)
         rp_IK = cmds.ikHandle( sol='ikRPsolver', sj=(IKSelec), ee=(last_jnt))
 
     
@@ -175,10 +162,10 @@ def grouping():
         cmds.parent(each)
         
 def select_world_ctrl():
-    cmds.select(cl=True)
-    cmds.select(all=True)
-    sel_world_ctrl = cmds.ls(sl=True, type="transform")
-    cmds.select('world_ctrl')
+    world_ctrl_arg = 'world_ctrl'
+    sel_world_ctrl = cmds.ls(world_ctrl_arg,sl=True, type="transform")
+    cmds.select(world_ctrl_arg)
+    return world_ctrl_arg
 
         
 def fk_rg():
@@ -277,6 +264,7 @@ def get_short_name(obj):
     return short_name
             
 def rename_search_replace(obj_list, search, replace):
+    to_rename=[]
     for obj in obj_list:
         object_short_name = get_short_name(obj)
         new_name = string_replace(str(object_short_name), search, replace)
@@ -287,33 +275,6 @@ def rename_search_replace(obj_list, search, replace):
         if cmds.objExists(pair[0]):
             cmds.rename(pair[0], pair[1])
      
-
-
-def reset_locator():
-    #Delete Locators
-    cmds.delete(make_locator.front_locator)
-    cmds.delete(make_locator.back_locator)
-    
-    #Hide Buttons
-    cmds.button(window_maker.init_button, edit = True, enable = True)
-    cmds.button(window_maker.curve_button, edit = True, enable = False, visible = False)
-    cmds.button(window_maker.reset_button, edit = True, enable = False)
-    cmds.textFieldButtonGrp(window_maker.text_button, edit = True, enable = False, visible = False, text = "")
-    cmds.intSliderGrp(window_maker.copies_slider, edit= True, visible= False, value=0)
-    cmds.text(window_maker.text_tread, edit=True, visible=False)
-    
-    # If the user resets before the Curve gets created, just try to get it and ignore the Error
-    try:
-        cmds.delete(make_curve.tread_curve)
-        cmds.delete(make_curve.locator_group)
-        cmds.delete(numchange.new_polyobject)
-    except AttributeError:
-        pass
-    except ValueError:
-        pass
-        
-    
-
 def master_group():
     if cmds.objExists('main_grp')!=True: # If doens't not exist create a group called "main_grp"
         cmds.group(n='main_grp', empty=True)
@@ -323,32 +284,33 @@ def master_group():
         pass # if the global control already exist "pass"
         
 def master_CTRL():
-        if cmds.objExists('world_ctrl')!=True: # If doens't not exist create a global control
-            ctrl_node = cmds.circle(degree=1, sections=6, normal=[0,1,0])
-            ctrl = cmds.rename(ctrl_node[0], 'world_ctrl') # Rename transform node
-            ctrl_attrs = cmds.rename(ctrl_node[1], (ctrl + '_attrs')) # Rename input node
-            cmds.select(ctrl, r=True ) # Force selection of "ctrl" to resize
-            resize_circle()
-            #order_joints()
-            global_prt = cmds.listRelatives(ctrl, p=True)
-            if global_prt:
-                pass
-            else:
-                cmds.parent(ctrl, 'main_grp')
+    world_ctrl_arg = select_world_ctrl()
+    
+    if cmds.objExists(world_ctrl_arg)!=True: # If doens't not exist create a global control
+        ctrl_node = cmds.circle(degree=1, sections=6, normal=[0,1,0])
+        ctrl = cmds.rename(ctrl_node[0], world_ctrl_arg) # Rename transform node
+        ctrl_attrs = cmds.rename(ctrl_node[1], (ctrl + '_attrs')) # Rename input node
+        cmds.select(ctrl, r=True ) # Force selection of "ctrl" to resize
+        resize_circle()
+        #order_joints()
+        global_prt = cmds.listRelatives(ctrl, p=True)
+        if global_prt:
+            pass
         else:
-            pass # if the global control already exist "pass"
+            cmds.parent(ctrl, 'main_grp')
+    else:
+        pass # if the global control already exist "pass"
         
 def MakeJoint():
     jntList = []
     nameNumber = 1
     locList = []
-    sel = cmds.ls(sl=1)
     locPosX = 0
     locPosY = 0
     locPosZ = 0
-    global NewJointName
     WorldRotation = 1
     HirarchyCheckBox =0
+    sel = cmds.ls(sl=True)
 
     if NewJointName == "":
         NewJointName = "joint"
@@ -386,26 +348,15 @@ def ik_maker():
     if len(cmds.ls(sl=1, type="joint")) == 0:  # Make sure that user select the root joints
         cmds.warning('Please, first select the root joint!')
     else:
-        print (actObject)
         actObject = root_ik
-        print (root_ik)
         ik_selc = last_jnt
-        print (last_jnt)
         rp_IK = cmds.ikHandle( sol='ikRPsolver', sj=(ik_selc), ee=(last_jnt))
-        
         
 def first_joint(*args):
     global actObject
     objects = cmds.ls( selection=True )
     actObject = objects[0]
     cmds.textFieldGrp('FirstJoint',edit=True,text=actObject)
-    print (actObject)
-    
-
-def selc_first_joint(*args):
-    print (actObject)
-    print (ik_selc)
-
 
 def ik_joint(*args):
     global ik_selc
@@ -414,30 +365,17 @@ def ik_joint(*args):
     cmds.textFieldGrp('IKJoint',edit=True,text=ik_selc)
     print (ik_selc)
     
-
-def of_ik_maker():
-    print (root_ik_selc)
-    print (last_ik)
-    rp_IK = cmds.ikHandle( sol='ikRPsolver', sj=(root_ik_selc), ee=(last_ik))
-    
-
 def fk_ik_maker():
-    global root_ik_selc, last_ik
-    print (actObject)
-    print (ik_selc)
+    world_ctrl_arg = 'world_ctrl'
     jts = actObject
-    print (jts)
     if len(jts) ==0:  # if is not equal to 1 user is gonna get a warning
         cmds.warning('Please, first select the root joint')
     else: # if the conditions match do this:
         root_jnt = jts # show what is the root selected by user
         #pv_pos = jts[1]  # show what is the pole vector selected by user
-        print (root_jnt)
-        #print (pv_pos)
         cmds.select(root_jnt, replace=True) # make sure that the root joint is selected
         cmds.pickWalk(d='up') # seen if this root joint has a parent and if doens't have then the itens that we need to store is gonna be placed elsewhere
         prt_main = cmds.ls(selection=True, type='transform') # if we find the parent we gonna store in this VAR
-        print (prt_main)
         rad = cmds.getAttr(root_jnt + '.radius') # looking for the radius of the root joint and getting the attribute value if we want to change
         if cmds.objExists('main_grp')!=True: # If doens't not exist create a group called "main_grp"
             cmds.group(n='main_grp', empty=True)
@@ -445,9 +383,9 @@ def fk_ik_maker():
             lock_xform_channel()
         else:
             pass # if the global control already exist "pass"
-        if cmds.objExists('world_ctrl')!=True: # If doens't not exist create a global control
+        if cmds.objExists(world_ctrl_arg)!=True: # If doens't not exist create a global control
             ctrl_node = cmds.circle(degree=1, sections=6, normal=[0,1,0])
-            ctrl = cmds.rename(ctrl_node[0], 'world_ctrl') # Rename transform node
+            ctrl = cmds.rename(ctrl_node[0], world_ctrl_arg) # Rename transform node
             ctrl_attrs = cmds.rename(ctrl_node[1], (ctrl + '_attrs')) # Rename input node
             cmds.select(ctrl, r=True ) # Force selection of "ctrl" to resize
             resize_circle()
@@ -462,7 +400,6 @@ def fk_ik_maker():
         resizers = root_jnt + '_control_resize_grp' # we are creating the others groups for the skeleton and controls
         skeleton = root_jnt + '_skeleton'
         controls = root_jnt + '_controls'
-        world_ctrl = 'world_ctrl'
         if cmds.objExists(skeleton)!=True: # cheking if already exist a "_skeleton" group
             cmds.group(n=skeleton, empty=True)
             cmds.select(skeleton, replace=True)
@@ -482,21 +419,18 @@ def fk_ik_maker():
         else:
             pass
         fkIK = root_jnt.split('_skin')[0] + '_fkIK' # FK/IK Channels stores in a VAR the name of IK/FK channel (rename "_skin" and replace with ik/fk)
-        print (fkIK)
-        cmds.addAttr(world_ctrl, longName=fkIK, attributeType='double', min=0, max=1, dv=1) # creating a floating parameter for IK/FK
-        cmds.setAttr((world_ctrl + '.' + fkIK), e=True, k=True) # Use the name of the root joint and set to channel box
-        cmds.parent(skeleton, controls, world_ctrl)# Store controls and skeleton under global control (the last object is wat will be parent in this case "world_ctrl")
+        cmds.addAttr(world_ctrl_arg, longName=fkIK, attributeType='double', min=0, max=1, dv=1) # creating a floating parameter for IK/FK
+        cmds.setAttr((world_ctrl_arg + '.' + fkIK), e=True, k=True) # Use the name of the root joint and set to channel box
+        cmds.parent(skeleton, controls, world_ctrl_arg)# Store controls and skeleton under global control (the last object is wat will be parent in this case "world_ctrl")
         rad_offset = 1 # VAR that we can resize the radius of the joints chain when we need
         rad_root = cmds.getAttr(root_jnt + '.radius')
         cmds.select(root_jnt, r=True)# FK chain (select the root and then duplicate the chain)
         cmds.duplicate(rr=True) # "rr"= duplicate this object as it's
         root_fk_node = cmds.ls(sl=True, type='joint')[0]
-        print (root_fk_node)
         root_fk = cmds.rename(root_fk_node, (root_jnt.split('_skin')[0] + '_fk')) # renaming the duplicated joint
         cmds.select(hierarchy=True) # select all joints with hierarchy
         cmds.select(root_fk, tgl=True) # tgl off the selection of the root
         fk_chain = cmds.ls(sl=True, type='joint')
-        print (fk_chain)
         for each_fk in fk_chain:
             cmds.setAttr(each_fk + '.radius', (rad_root + rad_offset)) # increase radius of the root FK
         cmds.select(hi=True) # select all joints with hierarchy
@@ -518,26 +452,22 @@ def fk_ik_maker():
         rename_search_replace(ik_chain, str_skin, str_ik)
         renamed_root_ik = cmds.select(root_ik, hi=True)
         renamed_ik_chain = cmds.ls(sl=True, type='joint')
-        print ('RENAMED:', renamed_ik_chain)
         cmds.select(root_jnt, hi=True) # we gonna deselect the end joint
         chain = cmds.ls(sl=True, type='joint')
         size_chain = len(chain)
         cmds.select(chain[size_chain-1], tgl=True)
         main_chain = cmds.ls(sl=True, type='joint') # store the joints in a VAR
-        print (main_chain)
         for each_main in main_chain: # Blend betwwen IK/FK
             jnt_prefix = each_main.split('_skin')[0] # VAR the ignores the "_skin" on the name
-            print(jnt_prefix)
             rev = cmds.createNode('reverse', n=(jnt_prefix  + '_ik_rev')) # turn off the system that is not been used, if is 0 fk is gonna work and 1 is IK
-            print(rev)
             ik = jnt_prefix + '_ik'
             fk = jnt_prefix + '_fk'
             prtc = cmds.parentConstraint(fk, ik, each_main)[0] # we get an average between IK/FK
             cn_wgt = cmds.parentConstraint(prtc, q=True, wal=True) # Store parent constraint weight values channels in VAR. "cn_weight"
             fk_wgt = cn_wgt[0]
             ik_wgt = cn_wgt[1]
-            cmds.connectAttr((world_ctrl + '.' + fkIK), (prtc + '.' + ik_wgt), f=True) # connect attribute to the global controls and we have an IK/FK system 0 to 1
-            cmds.connectAttr((world_ctrl + '.' + fkIK), (rev + '.inputX'), f=True)
+            cmds.connectAttr((world_ctrl_arg + '.' + fkIK), (prtc + '.' + ik_wgt), f=True) # connect attribute to the global controls and we have an IK/FK system 0 to 1
+            cmds.connectAttr((world_ctrl_arg + '.' + fkIK), (rev + '.inputX'), f=True)
             cmds.connectAttr((rev + '.outputX'), (prtc + '.' + fk_wgt), f=True)
             cmds.setAttr((fk + '.visibility'),0) # toggle off the visibility of IK/FK joints chain
             cmds.setAttr((ik + '.visibility'),0)
@@ -547,40 +477,28 @@ def fk_ik_maker():
         cmds.select(fk_skel, r=True)
         cmds.select(fk_skel[size_fk_skel-1], tgl=True)
         fk_skel_ctrl = cmds.ls(sl=True, type='joint') # store the chain of joints
-        print (fk_skel_ctrl)
         fk_root_sel = cmds.ls(sl=True, type='joint')[0]
-        print (fk_root_sel)
         fk_rg()
-        fkIk_chn = world_ctrl + '.' + fkIK
-        print(fkIk_chn)
+        fkIk_chn = world_ctrl_arg + '.' + fkIK
         rev_fk = cmds.createNode('reverse', n=(root_fk + '_rev')) # turn off the visibility of the control object
-        print (rev_fk)
         connet_rev = cmds.connectAttr(fkIk_chn, (rev_fk + '.inputX'), f=True)
-        print (connet_rev)
         for each_fk_ctrl in fk_skel_ctrl: # store the controls/resizers objcts in the control/resize groups
             cmds.parent((each_fk_ctrl + '_CTRL_grp', controls))
             cmds.parent((each_fk_ctrl + '_CTRL_resize', resizers))
             cmds.connectAttr((rev_fk + '.outputX'),(each_fk_ctrl + '_CTRL_grp.visibility'), f=True)  # Toggle FK controls, so when you are using in IK controls you don't see FK controllers
-        print (actObject)
         root_sel = cmds.select(actObject [:-4] + 'ik')
         root_ik_selc = cmds.ls(sl=True)[0]
-        print(root_ik_selc)
-        print (ik_selc)
         last_sel = cmds.select(ik_selc [:-4] + 'ik')
         last_ik = cmds.ls(sl=True)[0]
-        print(last_ik)
         selection_r = cmds.select(root_ik_selc, last_ik, r=True) # IK controls, here wue select the ik chain and see the lenth to subtract 1 and always create the Ikhandle before the end joint
-        print (selection_r)
         #ik_maker()
-        of_ik_maker()
+        rp_IK = cmds.ikHandle( sol='ikRPsolver', sj=(root_ik_selc), ee=(last_ik))
         ik_hdl = cmds.ls(sl=True, type='transform')[0]# store the selection of IK_handle
-        print (ik_hdl)
         cmds.setAttr(ik_hdl + '.visibility', 0)
         cmds.select(ik_hdl, r=True) # force the selection of the ik handle
         ik_rg()  # create the ik control
         toggle_ik_fk = cmds.connectAttr(fkIk_chn, (ik_hdl + '_ik_CTRL_grp.visibility'), f=True) # Toggle IK controls, so when you are using in FK controls you don't see IK controllers
         cmds.connectAttr(fkIk_chn, (ik_hdl + '.ikBlend'), f=True)
-        print (toggle_ik_fk)
         cmds.parent((ik_hdl + '_ik_CTRL_grp'), controls)
         cmds.parent((ik_hdl + '_ik_CTRL_resize'), resizers)
         cmds.parent(resizers,  'main_grp')
@@ -592,29 +510,28 @@ def fk_ik_maker():
 
 def control_to_pol():
     sel_joint = cmds.ls(sl=True,type='joint')
-    pole_ctrl = sel_joint[0].split('_Jnt')
-    name_pol = pole_ctrl[0]
+    world_ctrl_arg = select_world_ctrl()
 
-    pol_grp = cmds.group(em=True,n=name_pol + '_polv_offset')
-    pol_vec_grp = cmds.group(em=True,n=name_pol + '_pol_constraint')
-    pol_SDK = cmds.group(em=True,n=name_pol + '_polv_SDK')
+    pol_grp = cmds.group(em=True,n=str(sel_joint) + '_polv_offset')
+    pol_vec_grp = cmds.group(em=True,n=str(sel_joint) + '_pol_constraint')
+    pol_SDK = cmds.group(em=True,n=str(sel_joint) + '_polv_SDK')
     joint_pos = cmds.xform(sel_joint,q=True,t=True,ws=True)
-    pole_v_oficial = cmds.circle(n=name_pol + '_pol_vec', nr=(0,1,0))
-    pole_v_ctrl = cmds.circle(n=name_pol + '_pol', nr=(0,1,0))
+    pole_v_oficial = cmds.circle(n=str(sel_joint) + '_pol_vec', nr=(0,1,0))
+    pole_v_ctrl = cmds.circle(n=str(sel_joint) + '_pol', nr=(0,1,0))
     cmds.setAttr(pole_v_ctrl[0] + '.visibility', 0)
     cmds.scale(0,0,0,pole_v_ctrl)
-    paren_pol = cmds.parent(pol_grp,'world_ctrl')
+    paren_pol = cmds.parent(pol_grp,world_ctrl_arg)
     paren_pol = cmds.parent(pole_v_ctrl[0],pol_vec_grp)
     paren_pol = cmds.parent(pole_v_oficial[0],pol_SDK)
     paren_pol = cmds.parent(pol_vec_grp,pol_grp)
     cmds.scale(3,3,3,pole_v_oficial)
 
     cmds.move(joint_pos[0],joint_pos[1],joint_pos[2],pol_grp)
-    cmds.move(joint_pos[0],joint_pos[1]+13,joint_pos[2],pol_SDK)
+    cmds.move(joint_pos[0],joint_pos[1],joint_pos[2],pol_SDK)
     cmds.parentConstraint(sel_joint,pol_grp,mo=False)
     cmds.delete(pol_grp + '_parentConstraint1')
     cmds.select(pol_vec_grp)
-    cmds.move(0,-20,0,r=True,os=True,wd=True)
+    cmds.move(0,0,0,r=True,os=True,wd=True)
     paren_pol = cmds.parent(pol_SDK,pol_grp)
 
     cmds.parentConstraint(pole_v_oficial,pole_v_ctrl,mo=1)
@@ -626,17 +543,6 @@ def pole_vector():
 
     for curvs,hndl in zip(list_of_curvs,list_iks):
         cmds.poleVectorConstraint (curvs, hndl)
-
-
-def follow_ctrl():
-    list_of_ctrls = cmds.ls(sl=True,type='transform')
-    ctrls_n = list_of_ctrls[-8:]
-    ctrls_d = list_of_ctrls[:8]
-
-
-    for ctrls,grps in zip(ctrls_d,ctrls_n):
-        cmds.pointConstraint(ctrls, grps,mo=1,weight=1)
-
 
 ### Window UI ###
 def window_maker():
@@ -669,8 +575,8 @@ msg_003 = cmds.text('Always change the name before creating',bgc = (1,1,0))
 msg_004 = cmds.text('a new chain of joints! CONFIRM NAME!',bgc = (1,1,0))
 cmds.rowLayout (cw3 = (50, 280, 40), nc = 4)
 joint_name = cmds.textFieldGrp(w=100, h=20,text="JointsName", cc="name_user = cmds.textFieldGrp(joint_name, q=1, tx=1)")
-cmds.separator(w=20,height=1)
-confirm_name = cmds.button(label='Confirm Name', w=80, h=20,enable=True, command='name_user = cmds.textFieldGrp(joint_name, q=1, tx=1)', backgroundColor=(0.3,0.3,0.3))
+#cmds.separator(w=20,height=1)
+#confirm_name = cmds.button(label='Confirm Name', w=80, h=20,enable=True, command='name_user = cmds.textFieldGrp(joint_name, q=1, tx=1)', backgroundColor=(0.3,0.3,0.3))
 cmds.setParent( '..' ) 
 
     # Button to create joints/show axis joints or Hide
@@ -710,8 +616,6 @@ cmds.rowLayout (cw3 = (50, 280, 40), nc = 7)
 create_controllers = cmds.button(label='control', w=70, h=20,enable=True, command='control_to_pol()', backgroundColor=(0.3,0.3,0.3))
 cmds.separator(w=10,height=1)
 create_controllers = cmds.button(label='pole vector', w=70, h=20,enable=True, command='pole_vector()', backgroundColor=(0.3,0.3,0.3))
-cmds.separator(w=10,height=1)
-create_controllers = cmds.button(label='follow ctrl', w=70, h=20,enable=True, command='follow_ctrl()', backgroundColor=(0.3,0.3,0.3))
 cmds.separator(w=10,height=1)
 cmds.setParent( '..' )
 cmds.rowLayout (cw3 = (50, 280, 40), nc = 2)
